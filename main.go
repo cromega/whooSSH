@@ -4,16 +4,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 
-	"io"
-
-	"bufio"
-
 	"github.com/gorilla/websocket"
-	"github.com/kr/pty"
 )
 
 var (
@@ -39,54 +33,24 @@ func main() {
 
 	startHTTPServer()
 
-	input := make(chan string, 100)
+	sp, err := NewSubProcess("bash")
+	if err != nil {
+		panic(err)
+	}
+	defer sp.kill()
 
 	go func() {
-		handleIncomingMessages(input)
+		handleIncomingMessages(sp.input)
 	}()
 
-	output := make(chan string, 100)
-	startProcess(input, output)
 	go func() {
-		for line := range output {
+		for line := range sp.output {
 			fmt.Print(line)
-
 		}
 	}()
 
 	<-stop
 	close(incoming)
-}
-
-func startProcess(input, output chan string) {
-	cmd := exec.Command("bash")
-	cmd.Env = os.Environ()
-
-	handle, err := pty.Start(cmd)
-	if err != nil {
-		panic(err)
-	}
-
-	go func() {
-		for i := range input {
-			fmt.Println("sending data to bash: ", i)
-
-			_, err := io.WriteString(handle, i)
-			if err != nil {
-				fmt.Println("write failed", err)
-			}
-		}
-	}()
-
-	go func() {
-		r := bufio.NewScanner(handle)
-		r.Split(bufio.ScanBytes)
-
-		for r.Scan() {
-			output <- r.Text()
-		}
-		fmt.Println("end scan")
-	}()
 }
 
 func handleStaticHTTP() {
