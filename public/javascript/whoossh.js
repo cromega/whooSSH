@@ -4,6 +4,8 @@ window.onload = function () {
     term.writeln("whooSSH!")
 
     term.on("key", function (key, ev) {
+        s.send(key);
+
         var printable = (
             !ev.altKey && !ev.altGraphKey && !ev.ctrlKey && !ev.metaKey
         );
@@ -22,15 +24,10 @@ window.onload = function () {
     var s = new WebSocket("ws://localhost:8080/whooSSH");
     s.onopen = function (event) {
         console.log("yay");
-        term.attach(s);
     }
 
     s.onmessage = function (event) {
         console.log(event)
-        term.writeln(event.data);
-    }
-
-    s.onclose = function (event) {
-        term.detach(socket);
+        term.write(event.data);
     }
 }
