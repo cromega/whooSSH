@@ -2,12 +2,9 @@ package main
 
 import (
 	"fmt"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/gorilla/websocket"
 )
 
 var (
@@ -20,9 +17,6 @@ func main() {
 
 	incoming = make(chan []byte, 100)
 
-	http.HandleFunc("/whooSSH", WSSHandler)
-	handleStaticHTTP()
-
 	stop := make(chan bool, 1)
 
 	go func() {
@@ -31,7 +25,7 @@ func main() {
 		stop <- true
 	}()
 
-	startHTTPServer()
+	NewServer()
 
 	sp, err := NewSubProcess("bash")
 	if err != nil {
@@ -53,18 +47,6 @@ func main() {
 	close(incoming)
 }
 
-func handleStaticHTTP() {
-	dir := http.FileServer(http.Dir("./public"))
-	http.Handle("/", dir)
-}
-
-func startHTTPServer() {
-	go func() {
-		fmt.Println("Starting Static HTTP server")
-		panic(http.ListenAndServe(":8080", nil))
-	}()
-}
-
 func handleIncomingMessages(input chan string) {
 	line := ""
 	for message := range incoming {
@@ -75,32 +57,6 @@ func handleIncomingMessages(input chan string) {
 		} else {
 			msg := string(message)
 			line += msg
-		}
-	}
-}
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
-
-func WSSHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	conn.WriteMessage(websocket.TextMessage, []byte("lo!"))
-
-	for {
-		messageType, data, err := conn.ReadMessage()
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		if messageType == websocket.TextMessage {
-			incoming <- data
 		}
 	}
 }
