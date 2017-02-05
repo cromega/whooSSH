@@ -12,8 +12,8 @@ import (
 
 	"bufio"
 
-	_ "github.com/cromega/stacker"
 	"github.com/gorilla/websocket"
+	"github.com/kr/pty"
 )
 
 var (
@@ -49,7 +49,7 @@ func main() {
 	startProcess(input, output)
 	go func() {
 		for line := range output {
-			fmt.Println(line)
+			fmt.Print(line)
 
 		}
 	}()
@@ -59,12 +59,10 @@ func main() {
 }
 
 func startProcess(input, output chan string) {
-	cmd := exec.Command("bash", "-s")
+	cmd := exec.Command("bash")
 	cmd.Env = os.Environ()
-	stdin, _ := cmd.StdinPipe()
-	stdout, err := cmd.StdoutPipe()
 
-	err = cmd.Start()
+	handle, err := pty.Start(cmd)
 	if err != nil {
 		panic(err)
 	}
@@ -72,18 +70,19 @@ func startProcess(input, output chan string) {
 	go func() {
 		for i := range input {
 			fmt.Println("sending data to bash: ", i)
-			n, err := io.WriteString(stdin, i)
-			fmt.Println("written ", n)
+
+			_, err := io.WriteString(handle, i)
 			if err != nil {
-				fmt.Println("write failed", err, n)
+				fmt.Println("write failed", err)
 			}
 		}
 	}()
 
 	go func() {
-		r := bufio.NewScanner(stdout)
+		r := bufio.NewScanner(handle)
+		r.Split(bufio.ScanBytes)
+
 		for r.Scan() {
-			fmt.Println("something coming from bash: ", r.Text())
 			output <- r.Text()
 		}
 		fmt.Println("end scan")
