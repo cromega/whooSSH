@@ -27,36 +27,6 @@ func main() {
 
 	NewServer()
 
-	sp, err := NewSubProcess("bash")
-	if err != nil {
-		panic(err)
-	}
-	defer sp.kill()
-
-	go func() {
-		handleIncomingMessages(sp.input)
-	}()
-
-	go func() {
-		for line := range sp.output {
-			fmt.Print(line)
-		}
-	}()
-
 	<-stop
 	close(incoming)
-}
-
-func handleIncomingMessages(input chan string) {
-	line := ""
-	for message := range incoming {
-		if message[0] == 13 {
-			fmt.Println("message received: ", line)
-			input <- line + "\n"
-			line = ""
-		} else {
-			msg := string(message)
-			line += msg
-		}
-	}
 }

@@ -43,7 +43,7 @@ func NewSubProcess(command string) (*subProcess, error) {
 
 	go func() {
 		r := bufio.NewScanner(handle)
-		r.Split(bufio.ScanBytes)
+		r.Split(bufio.ScanRunes)
 
 		for r.Scan() {
 			sp.output <- r.Text()

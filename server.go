@@ -8,7 +8,12 @@ import (
 )
 
 type server struct {
-	conn *websocket.Conn
+	sessions []*session
+}
+
+type connection struct {
+	conn     *websocket.Conn
+	messages chan string
 }
 
 func NewServer() *server {
@@ -36,20 +41,27 @@ func (s *server) WSSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.conn = conn
+	session, _ := NewSession(&connection{conn: conn})
+	s.sessions = append(s.sessions, session)
 
-	conn.WriteMessage(websocket.TextMessage, []byte("lo!"))
+}
 
-	for {
-		messageType, data, err := conn.ReadMessage()
-		if err != nil {
-			fmt.Println(err)
-		}
+func (c *connection) Write(message string) {
+	c.conn.WriteMessage(websocket.TextMessage, []byte(message))
+}
 
-		if messageType == websocket.TextMessage {
-			incoming <- data
-		}
+func (c *connection) Read() string {
+	messageType, data, err := c.conn.ReadMessage()
+
+	if err != nil {
+		fmt.Println(err)
 	}
+
+	if messageType == websocket.TextMessage {
+		return string(data)
+	}
+
+	return ""
 }
 
 func handleStaticHTTP() {
