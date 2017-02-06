@@ -28,7 +28,9 @@ func NewSession(conn *connection) (s *session, err error) {
 		for {
 			message := conn.Read()
 			if len(message) == 0 {
-				continue
+				fmt.Println("connection closed, terminating subprocess")
+				sp.kill()
+				break
 			}
 
 			if message[0] == 13 {
