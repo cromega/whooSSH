@@ -8,7 +8,6 @@ import (
 )
 
 type server struct {
-	sessions []*session
 }
 
 type connection struct {
@@ -41,8 +40,7 @@ func (s *server) WSSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session, _ := NewSession(&connection{conn: conn})
-	s.sessions = append(s.sessions, session)
+	NewSession(&connection{conn: conn})
 
 }
 
