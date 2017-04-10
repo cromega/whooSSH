@@ -53,7 +53,7 @@ func (s *session) start() (err error) {
 	go func() {
 		for line := range s.sp.output {
 			fmt.Print(line)
-			s.conn.Write(line)
+			s.sendMessage(line)
 		}
 	}()
 
