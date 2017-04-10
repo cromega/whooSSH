@@ -30,23 +30,8 @@ func (s *session) start() (err error) {
 	}
 
 	go func() {
-		line := ""
 		for {
-			message := s.conn.Read()
-			if len(message) == 0 {
-				fmt.Println("connection closed, terminating subprocess")
-				s.sp.kill()
-				break
-			}
-
-			if message[0] == 13 {
-				fmt.Println("message received: ", line)
-				s.sp.input <- line + "\n"
-				line = ""
-			} else {
-				msg := string(message)
-				line += msg
-			}
+			s.sp.input <- s.readMessage()
 		}
 	}()
 
@@ -62,6 +47,25 @@ func (s *session) start() (err error) {
 
 func (s *session) sendMessage(message string) {
 	s.conn.Write(message)
+}
+
+func (s *session) readMessage() (message string) {
+	line := ""
+	for {
+		message = s.conn.Read()
+		if len(message) == 0 {
+			continue
+		}
+
+		if message[0] == 13 {
+			fmt.Println("message received: ", line)
+			message = line + "\n"
+			return
+		}
+
+		msg := string(message)
+		line += msg
+	}
 }
 
 func (s *session) End() {
