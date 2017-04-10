@@ -17,7 +17,8 @@ func NewSession(conn *connection) (s *session, err error) {
 
 	s.sendMessage("hilo")
 
-	sp, err := NewSubProcess("bash")
+	sp := NewSubProcess("bash")
+	err = sp.start()
 	if err != nil {
 		return
 	}

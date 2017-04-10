@@ -16,7 +16,7 @@ type subProcess struct {
 	cmd    *exec.Cmd
 }
 
-func NewSubProcess(command string) (*subProcess, error) {
+func NewSubProcess(command string) *subProcess {
 	sp := &subProcess{
 		input:  make(chan string, 100),
 		output: make(chan string, 100),
@@ -25,9 +25,14 @@ func NewSubProcess(command string) (*subProcess, error) {
 	cmd := exec.Command(command)
 	cmd.Env = os.Environ()
 
-	handle, err := pty.Start(cmd)
+	sp.cmd = cmd
+	return sp
+}
+
+func (sp *subProcess) start() (err error) {
+	handle, err := pty.Start(sp.cmd)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	go func() {
@@ -51,8 +56,7 @@ func NewSubProcess(command string) (*subProcess, error) {
 		fmt.Println("end scan")
 	}()
 
-	sp.cmd = cmd
-	return sp, nil
+	return
 }
 
 func (sp *subProcess) kill() {
