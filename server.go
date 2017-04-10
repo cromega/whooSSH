@@ -40,7 +40,12 @@ func (s *server) WSSHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NewSession(&connection{conn: conn})
+	session := NewSession(&connection{conn: conn})
+	err = session.start()
+	if err != nil {
+		fmt.Println("session wtfed out: %v", err)
+		return
+	}
 
 }
 

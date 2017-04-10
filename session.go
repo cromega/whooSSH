@@ -10,33 +10,38 @@ type session struct {
 	messages chan string
 }
 
-func NewSession(conn *connection) (s *session, err error) {
+func NewSession(conn *connection) (s *session) {
 	s = &session{
 		conn: conn,
 	}
 
+	sp := NewSubProcess("bash")
+	s.sp = sp
+
+	return
+}
+
+func (s *session) start() (err error) {
 	s.sendMessage("hilo")
 
-	sp := NewSubProcess("bash")
-	err = sp.start()
+	err = s.sp.start()
 	if err != nil {
 		return
 	}
-	s.sp = sp
 
 	go func() {
 		line := ""
 		for {
-			message := conn.Read()
+			message := s.conn.Read()
 			if len(message) == 0 {
 				fmt.Println("connection closed, terminating subprocess")
-				sp.kill()
+				s.sp.kill()
 				break
 			}
 
 			if message[0] == 13 {
 				fmt.Println("message received: ", line)
-				sp.input <- line + "\n"
+				s.sp.input <- line + "\n"
 				line = ""
 			} else {
 				msg := string(message)
@@ -46,9 +51,9 @@ func NewSession(conn *connection) (s *session, err error) {
 	}()
 
 	go func() {
-		for line := range sp.output {
+		for line := range s.sp.output {
 			fmt.Print(line)
-			conn.Write(line)
+			s.conn.Write(line)
 		}
 	}()
 
